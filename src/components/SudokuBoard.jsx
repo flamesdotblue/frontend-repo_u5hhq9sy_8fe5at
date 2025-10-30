@@ -76,6 +76,8 @@ export default function SudokuBoard({ theme, difficulty, level, onComplete }) {
   const startedRef = useRef(false)
   const completeRef = useRef(false)
 
+  const isDark = theme === 'vibrant'
+
   useEffect(() => {
     setGrid(puzzle)
     setFixed(puzzle.map(row => row.map((v) => v !== 0)))
@@ -102,7 +104,6 @@ export default function SudokuBoard({ theme, difficulty, level, onComplete }) {
     setGrid((g) => {
       const copy = g.map((row) => row.slice())
       copy[r][c] = num
-      // Auto-check for completion
       const solved = copy.every((row, ri) => row.every((v, ci) => v === solution[ri][ci]))
       if (solved) {
         completeRef.current = true
@@ -130,30 +131,30 @@ export default function SudokuBoard({ theme, difficulty, level, onComplete }) {
   const { correct, filled } = checkProgress()
 
   return (
-    <div className={`w-full rounded-lg p-4 ${theme==='vibrant' ? 'bg-white/10 text-white' : 'bg-white border border-gray-200 text-gray-800'}`}>
+    <div className={`w-full rounded-lg p-4 shadow-sm ${isDark ? 'bg-emerald-900/40 text-emerald-50 border border-emerald-800' : 'bg-white border border-emerald-100 text-emerald-900'}`}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Timer size={18} className={theme==='vibrant' ? 'text-white' : 'text-gray-700'} />
+          <Timer size={18} className={isDark ? 'text-emerald-100' : 'text-emerald-800'} />
           <span className="font-mono text-lg">{formatTime(seconds)}</span>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setRunning(true)} className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm font-semibold ${theme==='vibrant' ? 'bg-green-500/80 hover:bg-green-500 text-white' : 'bg-green-600 hover:bg-green-700 text-white'}`}>
+          <button onClick={() => setRunning(true)} className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm font-semibold transition ${isDark ? 'bg-emerald-500/30 hover:bg-emerald-500/40 text-emerald-50' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}>
             <Play size={16} /> Start
           </button>
-          <button onClick={() => setRunning((r) => !r)} className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm font-semibold ${theme==='vibrant' ? 'bg-yellow-500/80 hover:bg-yellow-500 text-white' : 'bg-yellow-600 hover:bg-yellow-700 text-white'}`}>
+          <button onClick={() => setRunning((r) => !r)} className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm font-semibold transition ${isDark ? 'bg-lime-500/30 hover:bg-lime-500/40 text-emerald-50' : 'bg-lime-600 hover:bg-lime-700 text-white'}`}>
             <Pause size={16} /> Pause
           </button>
-          <button onClick={reset} className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm font-semibold ${theme==='vibrant' ? 'bg-indigo-500/80 hover:bg-indigo-500 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}>
+          <button onClick={reset} className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm font-semibold transition ${isDark ? 'bg-teal-500/30 hover:bg-teal-500/40 text-emerald-50' : 'bg-teal-600 hover:bg-teal-700 text-white'}`}>
             <RotateCcw size={16} /> Reset
           </button>
-          <div className={`flex items-center gap-2 ml-2 text-sm ${theme==='vibrant' ? 'text-white/80' : 'text-gray-600'}`}>
+          <div className={`flex items-center gap-2 ml-2 text-sm ${isDark ? 'text-emerald-200' : 'text-emerald-700'}`}>
             <Check size={16} /> {correct}/81 correct • {filled}/81 filled
           </div>
         </div>
       </div>
 
       <div className="aspect-square max-w-xl mx-auto">
-        <div className="grid grid-cols-9 grid-rows-9 gap-[2px] bg-gray-400 rounded-md overflow-hidden">
+        <div className={`grid grid-cols-9 grid-rows-9 gap-[2px] rounded-md overflow-hidden ${isDark ? 'bg-emerald-800' : 'bg-emerald-200'}`}>
           {grid.map((row, r) => (
             row.map((cell, c) => {
               const isFixed = fixed[r][c]
@@ -162,7 +163,7 @@ export default function SudokuBoard({ theme, difficulty, level, onComplete }) {
               return (
                 <div
                   key={`${r}-${c}`}
-                  className={`bg-white ${isRegionBorder ? 'shadow-[inset_0_-2px_0_0_rgba(0,0,0,0.2),inset_-2px_0_0_0_rgba(0,0,0,0.2)]' : ''}`}
+                  className={`${isDark ? 'bg-emerald-900' : 'bg-white'} ${isRegionBorder ? (isDark ? 'shadow-[inset_0_-2px_0_0_rgba(6,95,70,0.6),inset_-2px_0_0_0_rgba(6,95,70,0.6)]' : 'shadow-[inset_0_-2px_0_0_rgba(5,150,105,0.4),inset_-2px_0_0_0_rgba(5,150,105,0.4)]') : ''}`}
                 >
                   <input
                     inputMode="numeric"
@@ -170,7 +171,10 @@ export default function SudokuBoard({ theme, difficulty, level, onComplete }) {
                     maxLength={1}
                     value={cell === 0 ? '' : String(cell)}
                     onChange={(e) => handleInput(r, c, e.target.value.replace(/[^1-9]/g, ''))}
-                    className={`w-full h-full text-center text-lg sm:text-xl md:text-2xl font-semibold outline-none border-none p-0 ${isFixed ? 'bg-gray-100 text-gray-700' : (theme==='vibrant' ? 'text-indigo-700' : 'text-gray-800')} ${!isFixed && correctValue ? 'bg-green-50' : ''}`}
+                    className={`w-full h-full text-center text-lg sm:text-xl md:text-2xl font-semibold outline-none border-none p-0 transition
+                      ${isFixed ? (isDark ? 'bg-emerald-950 text-emerald-200' : 'bg-emerald-50 text-emerald-800') : (isDark ? 'bg-emerald-900 text-emerald-100 placeholder-emerald-200' : 'bg-white text-emerald-900')}
+                      focus:ring-2 ring-inset ring-emerald-400/60
+                      ${!isFixed && correctValue ? (isDark ? 'bg-emerald-800/60' : 'bg-emerald-50') : ''}`}
                   />
                 </div>
               )
@@ -180,7 +184,7 @@ export default function SudokuBoard({ theme, difficulty, level, onComplete }) {
       </div>
 
       {completeRef.current && (
-        <div className={`mt-4 text-center font-semibold ${theme==='vibrant' ? 'text-emerald-200' : 'text-emerald-600'}`}>
+        <div className={`mt-4 text-center font-semibold ${isDark ? 'text-emerald-200' : 'text-emerald-700'}`}>
           Puzzle solved! Time: {formatTime(seconds)}
         </div>
       )}

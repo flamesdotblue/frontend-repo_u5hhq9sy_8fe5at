@@ -11,45 +11,47 @@ export default function ThemeToggleHeader({ theme, setTheme, players, activePlay
     setNewPlayer('')
   }
 
+  const isDark = theme === 'vibrant'
+
   return (
-    <header className={`w-full px-4 sm:px-6 py-4 flex items-center justify-between ${theme === 'vibrant' ? 'bg-gradient-to-r from-fuchsia-500 via-purple-500 to-indigo-500 text-white' : 'bg-white/80 backdrop-blur border-b border-gray-200 text-gray-800'}`}>
+    <header className={`w-full px-4 sm:px-6 py-4 flex items-center justify-between ${isDark ? 'bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-600 text-emerald-50' : 'bg-white/90 backdrop-blur border-b border-emerald-100 text-emerald-900'}`}>
       <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-lg grid place-items-center font-bold ${theme==='vibrant' ? 'bg-white/20' : 'bg-gray-100 text-gray-700'}`}>S9</div>
+        <div className={`w-10 h-10 rounded-lg grid place-items-center font-bold ${isDark ? 'bg-emerald-900/40 text-emerald-100' : 'bg-emerald-100 text-emerald-700'}`}>S9</div>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold">Sudoku Arena</h1>
-          <p className={`text-xs ${theme==='vibrant' ? 'text-white/80' : 'text-gray-500'}`}>Compete. Climb. Conquer.</p>
+          <p className={`text-xs ${isDark ? 'text-emerald-50/80' : 'text-emerald-600'}`}>Compete. Climb. Conquer.</p>
         </div>
       </div>
 
       <div className="flex items-center gap-3">
         <div className="hidden sm:flex items-center gap-2 px-2">
-          <Trophy className={theme==='vibrant' ? 'text-yellow-200' : 'text-yellow-500'} size={18} />
-          <Users className={theme==='vibrant' ? 'text-white' : 'text-gray-700'} size={18} />
+          <Trophy className={isDark ? 'text-yellow-200' : 'text-yellow-600'} size={18} />
+          <Users className={isDark ? 'text-emerald-50' : 'text-emerald-800'} size={18} />
         </div>
         <div className="flex items-center gap-2">
           <select
             value={activePlayer}
             onChange={(e) => setActivePlayer(e.target.value)}
-            className={`px-3 py-2 rounded-md text-sm outline-none ${theme==='vibrant' ? 'bg-white/20 text-white placeholder-white/70' : 'bg-gray-100 text-gray-800'}`}
+            className={`px-3 py-2 rounded-md text-sm outline-none transition ring-1 ring-transparent focus:ring-2 ${isDark ? 'bg-emerald-900/40 text-emerald-50 placeholder-emerald-200/70 focus:ring-emerald-300' : 'bg-emerald-50 text-emerald-900 focus:ring-emerald-300'}`}
           >
             {players.map((p) => (
-              <option key={p.name} value={p.name} className="text-gray-800">{p.name}</option>
+              <option key={p.name} value={p.name} className="text-emerald-900">{p.name}</option>
             ))}
           </select>
           <input
             value={newPlayer}
             onChange={(e) => setNewPlayer(e.target.value)}
             placeholder="Add friend"
-            className={`px-3 py-2 rounded-md text-sm outline-none ${theme==='vibrant' ? 'bg-white/20 placeholder-white/70 text-white' : 'bg-gray-100 text-gray-800'}`}
+            className={`px-3 py-2 rounded-md text-sm outline-none transition ring-1 ring-transparent focus:ring-2 ${isDark ? 'bg-emerald-900/40 placeholder-emerald-200/70 text-emerald-50 focus:ring-emerald-300' : 'bg-emerald-50 text-emerald-900 focus:ring-emerald-300'}`}
           />
-          <button onClick={handleAdd} className={`px-3 py-2 rounded-md text-sm font-semibold ${theme==='vibrant' ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-gray-800 hover:bg-black text-white'}`}>Add</button>
+          <button onClick={handleAdd} className={`px-3 py-2 rounded-md text-sm font-semibold transition ${isDark ? 'bg-emerald-500/30 hover:bg-emerald-500/40 text-emerald-50' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}>Add</button>
         </div>
         <button
           aria-label="Toggle theme"
-          onClick={() => setTheme(theme === 'vibrant' ? 'subtle' : 'vibrant')}
-          className={`ml-2 p-2 rounded-md ${theme==='vibrant' ? 'bg-white/20 hover:bg-white/30' : 'bg-gray-100 hover:bg-gray-200'}`}
+          onClick={() => setTheme(isDark ? 'subtle' : 'vibrant')}
+          className={`ml-2 p-2 rounded-md transition ring-1 ring-transparent focus:ring-2 ${isDark ? 'bg-emerald-900/40 hover:bg-emerald-900/50 focus:ring-emerald-300' : 'bg-emerald-50 hover:bg-emerald-100 focus:ring-emerald-300'}`}
         >
-          {theme === 'vibrant' ? <Moon size={18} /> : <Sun size={18} />}
+          {isDark ? <Sun size={18} /> : <Moon size={18} />}
         </button>
       </div>
     </header>

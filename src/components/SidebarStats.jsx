@@ -7,7 +7,6 @@ function formatTime(sec) {
 }
 
 function computeStreak(days) {
-  // days: array of 'YYYY-MM-DD' sorted? we'll compute fresh
   const set = new Set(days)
   let streak = 0
   const today = new Date()
@@ -48,50 +47,52 @@ export default function SidebarStats({ theme, difficulty, players, activePlayer 
 
   const myRank = sorted.findIndex(s => s.name === activePlayer) + 1
 
+  const isDark = theme === 'vibrant'
+
   return (
-    <aside className={`w-full rounded-lg p-4 ${theme==='vibrant' ? 'bg-white/10 text-white' : 'bg-white border border-gray-200 text-gray-800'}`}>
+    <aside className={`w-full rounded-lg p-4 shadow-sm ${isDark ? 'bg-emerald-900/40 text-emerald-50 border border-emerald-800' : 'bg-white border border-emerald-100 text-emerald-900'}`}>
       <div className="flex items-center gap-2 mb-3">
-        <Trophy className={theme==='vibrant' ? 'text-yellow-200' : 'text-yellow-500'} size={18} />
+        <Trophy className={isDark ? 'text-yellow-200' : 'text-yellow-600'} size={18} />
         <h3 className="font-semibold">Leaderboard ({difficulty})</h3>
       </div>
       <div className="space-y-2 mb-4 max-h-48 overflow-auto pr-1">
         {sorted.map((p, idx) => (
-          <div key={p.name} className={`flex items-center justify-between text-sm rounded-md px-2 py-2 ${p.name===activePlayer ? (theme==='vibrant' ? 'bg-white/20' : 'bg-gray-100') : ''}`}>
+          <div key={p.name} className={`flex items-center justify-between text-sm rounded-md px-2 py-2 ${p.name===activePlayer ? (isDark ? 'bg-emerald-800/50' : 'bg-emerald-50') : ''}`}>
             <div className="flex items-center gap-2">
               <span className={`w-6 text-center font-semibold ${idx<3 ? 'text-yellow-500' : ''}`}>{idx+1}</span>
               <span>{p.name}</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className={p.best==null ? 'text-gray-400' : ''}>{p.best==null ? '—' : formatTime(p.best)}</span>
-              <span className="text-xs text-gray-400">{p.games} games</span>
+              <span className={p.best==null ? (isDark ? 'text-emerald-300/60' : 'text-emerald-400') : ''}>{p.best==null ? '—' : formatTime(p.best)}</span>
+              <span className={`text-xs ${isDark ? 'text-emerald-300/60' : 'text-emerald-600'}`}>{p.games} games</span>
             </div>
           </div>
         ))}
         {sorted.length === 0 && (
-          <div className="text-sm text-gray-400">No players yet. Add friends above.</div>
+          <div className={"text-sm " + (isDark ? 'text-emerald-300/70' : 'text-emerald-600')}>No players yet. Add friends above.</div>
         )}
       </div>
 
       <div className="flex items-center gap-2 mb-2">
-        <Flame className={theme==='vibrant' ? 'text-orange-200' : 'text-orange-600'} size={18} />
+        <Flame className={isDark ? 'text-orange-200' : 'text-orange-600'} size={18} />
         <h3 className="font-semibold">Your streak</h3>
       </div>
-      <div className={`mb-4 text-sm ${theme==='vibrant' ? 'text-white/80' : 'text-gray-600'}`}>
-        {streak} day streak • {me?.totalGames || 0} total games
+      <div className={`mb-4 text-sm ${isDark ? 'text-emerald-200/90' : 'text-emerald-700'}`}>
+        {streak} day streak • rank #{myRank || 1} • {me?.totalGames || 0} total games
       </div>
 
       <div className="flex items-center gap-2 mb-2">
-        <Medal className={theme==='vibrant' ? 'text-emerald-200' : 'text-emerald-600'} size={18} />
+        <Medal className={isDark ? 'text-lime-200' : 'text-emerald-600'} size={18} />
         <h3 className="font-semibold">Badges</h3>
       </div>
       <div className="flex flex-wrap gap-2">
-        {badges.length === 0 && <span className={`text-sm ${theme==='vibrant' ? 'text-white/70' : 'text-gray-500'}`}>Keep playing to earn badges at 50, 100, 150 games or days!</span>}
+        {badges.length === 0 && <span className={`text-sm ${isDark ? 'text-emerald-300/80' : 'text-emerald-700'}`}>Keep playing to earn badges at 50, 100, 150 games or days!</span>}
         {badges.map((b) => (
-          <span key={b} className={`text-xs px-2 py-1 rounded-full ${theme==='vibrant' ? 'bg-emerald-500/30 text-white' : 'bg-emerald-100 text-emerald-700'}`}>{b}</span>
+          <span key={b} className={`text-xs px-2 py-1 rounded-full ${isDark ? 'bg-emerald-700/60 text-emerald-50 ring-1 ring-emerald-500/40' : 'bg-emerald-100 text-emerald-800'}`}>{b}</span>
         ))}
       </div>
 
-      <div className={`mt-4 text-xs ${theme==='vibrant' ? 'text-white/60' : 'text-gray-500'}`}>
+      <div className={`mt-4 text-xs ${isDark ? 'text-emerald-300/70' : 'text-emerald-700'}`}>
         Tip: Invite friends by adding their names and let them take turns on your device. Rankings update automatically.
       </div>
     </aside>

@@ -20,7 +20,7 @@ function savePlayers(players) {
 }
 
 export default function App() {
-  const [theme, setTheme] = useState('vibrant') // 'vibrant' | 'subtle'
+  const [theme, setTheme] = useState('vibrant') // 'vibrant' (dark green) | 'subtle' (light mint)
   const [players, setPlayers] = useState(() => loadPlayers())
   const [activePlayer, setActivePlayer] = useState(() => localStorage.getItem('sudoku_active') || (players[0]?.name ?? ''))
   const [difficulty, setDifficulty] = useState('easy')
@@ -50,19 +50,17 @@ export default function App() {
       cur.games = (cur.games || 0) + 1
       if (cur.bestTime == null || elapsedSeconds < cur.bestTime) cur.bestTime = elapsedSeconds
       s[difficulty] = cur
-      // streak and totals
       const today = new Date().toISOString().slice(0,10)
       const daysSet = new Set(p.daysPlayed || [])
       daysSet.add(today)
       return { ...p, stats: s, daysPlayed: Array.from(daysSet).sort(), totalGames: (p.totalGames || 0) + 1 }
     }))
-    // advance to next level automatically for progression feel
     setLevel((l) => l + 1)
   }
 
   const bgClass = useMemo(() => theme === 'vibrant'
-    ? 'bg-gradient-to-br from-fuchsia-100 via-purple-100 to-indigo-100'
-    : 'bg-gray-50'
+    ? 'bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-950'
+    : 'bg-emerald-50'
   , [theme])
 
   return (
@@ -102,8 +100,8 @@ export default function App() {
         </div>
       </main>
 
-      <footer className={`mt-6 pb-8 text-center text-sm ${theme==='vibrant' ? 'text-purple-700' : 'text-gray-500'}`}>
-        Vibrant and Subtle modes available. Challenge friends locally and climb the leaderboard!
+      <footer className={`mt-6 pb-8 text-center text-sm ${theme==='vibrant' ? 'text-emerald-200' : 'text-emerald-700'}`}>
+        Dark Green and Light Mint modes. Challenge friends locally and climb the leaderboard!
       </footer>
     </div>
   )

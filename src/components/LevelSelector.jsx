@@ -5,36 +5,38 @@ export default function LevelSelector({ theme, difficulty, setDifficulty, level,
     { key: 'hard', label: 'Hard' },
   ]
 
+  const isDark = theme === 'vibrant'
+
   return (
-    <div className={`w-full rounded-lg p-4 ${theme==='vibrant' ? 'bg-white/10 text-white' : 'bg-white border border-gray-200 text-gray-800'}`}>
+    <div className={`w-full rounded-lg p-4 shadow-sm ${isDark ? 'bg-emerald-900/40 text-emerald-50 border border-emerald-800' : 'bg-white border border-emerald-100 text-emerald-900'}`}>
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           {difficulties.map(d => (
             <button
               key={d.key}
               onClick={() => setDifficulty(d.key)}
-              className={`px-3 py-2 rounded-md text-sm font-semibold transition ${difficulty===d.key ? (theme==='vibrant' ? 'bg-white/30 text-white' : 'bg-gray-900 text-white') : (theme==='vibrant' ? 'bg-white/10 text-white/80 hover:bg-white/20' : 'bg-gray-100 hover:bg-gray-200')}`}
+              className={`px-3 py-2 rounded-md text-sm font-semibold transition ${difficulty===d.key ? (isDark ? 'bg-emerald-500/30 text-emerald-50 ring-1 ring-emerald-300' : 'bg-emerald-600 text-white') : (isDark ? 'bg-emerald-900/40 text-emerald-200 hover:bg-emerald-900/60' : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100')}`}
             >
               {d.label}
             </button>
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <span className={`text-sm ${theme==='vibrant' ? 'text-white/80' : 'text-gray-500'}`}>Level</span>
+          <span className={`text-sm ${isDark ? 'text-emerald-200' : 'text-emerald-700'}`}>Level</span>
           <input
             type="number"
             min={1}
             value={level}
             onChange={(e) => setLevel(Math.max(1, parseInt(e.target.value || '1')))}
-            className={`w-20 px-3 py-2 rounded-md text-sm outline-none ${theme==='vibrant' ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-800'}`}
+            className={`w-20 px-3 py-2 rounded-md text-sm outline-none transition ring-1 ring-transparent focus:ring-2 ${isDark ? 'bg-emerald-900/40 text-emerald-50 focus:ring-emerald-300' : 'bg-emerald-50 text-emerald-900 focus:ring-emerald-300'}`}
           />
           <button
             onClick={() => setLevel(level + 1)}
-            className={`px-3 py-2 rounded-md text-sm font-semibold ${theme==='vibrant' ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-gray-800 hover:bg-black text-white'}`}
+            className={`px-3 py-2 rounded-md text-sm font-semibold transition ${isDark ? 'bg-emerald-500/30 hover:bg-emerald-500/40 text-emerald-50' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
           >Next</button>
         </div>
       </div>
-      <p className={`mt-3 text-sm ${theme==='vibrant' ? 'text-white/80' : 'text-gray-600'}`}>
+      <p className={`mt-3 text-sm ${isDark ? 'text-emerald-200/80' : 'text-emerald-700'}`}>
         Keep advancing level-by-level within each difficulty. Puzzles get trickier as you go!
       </p>
     </div>
