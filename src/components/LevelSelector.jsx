@@ -1,38 +1,41 @@
-import React from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-const difficulties = [
-  { key: 'easy', label: 'Easy' },
-  { key: 'medium', label: 'Medium' },
-  { key: 'hard', label: 'Hard' },
-];
+export default function LevelSelector({ difficulty, setDifficulty, levelIndex, setLevelIndex, totalLevels }) {
+  const diffs = ['easy', 'medium', 'hard'];
 
-export default function LevelSelector({ difficulty, onDifficultyChange, levelIndex, totalLevels, onPrev, onNext }) {
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        {difficulties.map((d) => (
+    <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <div className="flex items-center justify-center lg:justify-start gap-2">
+        {diffs.map((d) => (
           <button
-            key={d.key}
-            onClick={() => onDifficultyChange(d.key)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition border ${
-              difficulty === d.key
-                ? 'bg-emerald-600 text-white border-emerald-700'
-                : 'bg-white/70 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-100 border-emerald-100 dark:border-emerald-800 hover:bg-emerald-50/80 dark:hover:bg-emerald-900'
+            key={d}
+            onClick={() => setDifficulty(d)}
+            className={`px-4 py-2 rounded-md text-sm font-medium border transition ${
+              difficulty === d
+                ? 'bg-emerald-600 text-white border-emerald-600'
+                : 'bg-white dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-800'
             }`}
           >
-            {d.label}
+            {d.charAt(0).toUpperCase() + d.slice(1)}
           </button>
         ))}
       </div>
-
-      <div className="flex items-center justify-between bg-white/70 dark:bg-emerald-900/60 border border-emerald-100 dark:border-emerald-800 rounded-md p-3">
-        <div className="text-sm text-emerald-800 dark:text-emerald-200">
-          Level {levelIndex + 1} of {totalLevels}
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={onPrev} className="px-3 py-1 rounded-md text-sm bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-800 dark:text-emerald-100 dark:hover:bg-emerald-700">Prev</button>
-          <button onClick={onNext} className="px-3 py-1 rounded-md text-sm bg-emerald-600 text-white hover:bg-emerald-700">Next</button>
-        </div>
+      <div className="flex items-center justify-center gap-2 text-emerald-800 dark:text-emerald-100">
+        <span className="text-sm">Level {levelIndex + 1} of {totalLevels}</span>
+      </div>
+      <div className="flex items-center justify-center lg:justify-end gap-2">
+        <button
+          onClick={() => setLevelIndex((i) => Math.max(0, i - 1))}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100 hover:bg-emerald-50 dark:hover:bg-emerald-800"
+        >
+          <ChevronLeft size={16} /> Prev
+        </button>
+        <button
+          onClick={() => setLevelIndex((i) => Math.min(totalLevels - 1, i + 1))}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100 hover:bg-emerald-50 dark:hover:bg-emerald-800"
+        >
+          Next <ChevronRight size={16} />
+        </button>
       </div>
     </div>
   );

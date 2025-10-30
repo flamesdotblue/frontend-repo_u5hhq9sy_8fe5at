@@ -1,27 +1,26 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Play, Pause, RotateCcw, CheckCircle, Timer as TimerIcon } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Pause, Play, RotateCw, Zap } from 'lucide-react';
 
 function useTimer(running) {
   const [elapsed, setElapsed] = useState(0);
-  const startRef = useRef(null);
-
+  const last = useRef(null);
   useEffect(() => {
     let raf;
-    if (running) {
-      const start = performance.now() - elapsed;
-      startRef.current = start;
-      const tick = (t) => {
-        setElapsed(t - startRef.current);
-        raf = requestAnimationFrame(tick);
-      };
+    function tick(ts) {
+      if (running) {
+        if (last.current == null) last.current = ts;
+        const dt = ts - last.current;
+        last.current = ts;
+        setElapsed((e) => e + dt);
+      } else {
+        last.current = null;
+      }
       raf = requestAnimationFrame(tick);
     }
-    return () => raf && cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, [running]);
-
-  const reset = () => setElapsed(0);
-
-  return { elapsed, reset };
+  return [elapsed, setElapsed];
 }
 
 function formatTime(ms) {
@@ -31,203 +30,130 @@ function formatTime(ms) {
   return `${m}:${s}`;
 }
 
-function createGrid(pStr, sStr) {
-  const puzzle = pStr.split('').map((c) => parseInt(c, 10));
-  const solution = sStr.split('').map((c) => parseInt(c, 10));
-  const cells = Array.from({ length: 9 }, (_, r) =>
-    Array.from({ length: 9 }, (_, c) => {
-      const i = r * 9 + c;
-      return {
-        row: r,
-        col: c,
-        value: puzzle[i] || 0,
-        fixed: puzzle[i] !== 0,
-        solution: solution[i],
-      };
-    })
-  );
-  return cells;
-}
-
-function playBeep() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type = 'triangle';
-    o.frequency.setValueAtTime(880, ctx.currentTime);
-    g.gain.setValueAtTime(0.001, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.4, ctx.currentTime + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
-    o.connect(g).connect(ctx.destination);
-    o.start();
-    o.stop(ctx.currentTime + 0.4);
-  } catch {}
-}
-
-function ConfettiBurst() {
-  const containerRef = useRef(null);
-  useEffect(() => {
-    const container = containerRef.current;
-    const count = 120;
-    const colors = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#059669'];
-    const pieces = [];
-    for (let i = 0; i < count; i++) {
-      const piece = document.createElement('div');
-      piece.style.position = 'absolute';
-      piece.style.left = Math.random() * 100 + '%';
-      piece.style.top = '-10px';
-      piece.style.width = '6px';
-      piece.style.height = '10px';
-      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
-      piece.style.opacity = '0.9';
-      piece.style.transform = `rotate(${Math.random() * 360}deg)`;
-      piece.style.borderRadius = '1px';
-      piece.style.pointerEvents = 'none';
-      container.appendChild(piece);
-      const duration = 1200 + Math.random() * 800;
-      const translateX = (Math.random() - 0.5) * 200;
-      const keyframes = [
-        { transform: `translate(0, 0) rotate(0deg)`, opacity: 1 },
-        { transform: `translate(${translateX}px, ${window.innerHeight * 0.6}px) rotate(${360 * (Math.random() + 0.5)}deg)`, opacity: 0.9 },
-      ];
-      const anim = piece.animate(keyframes, { duration, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' });
-      pieces.push({ el: piece, anim });
-      anim.onfinish = () => piece.remove();
-    }
-    return () => {
-      pieces.forEach((p) => p.el.remove());
-    };
-  }, []);
-  return (
-    <div ref={containerRef} className="pointer-events-none absolute inset-0 overflow-hidden"></div>
-  );
-}
-
 export default function SudokuBoard({ puzzle, solution, onComplete }) {
+  const initial = useMemo(() => puzzle.split('').map((c) => Number(c)), [puzzle]);
+  const sol = useMemo(() => solution.split('').map((c) => Number(c)), [solution]);
+  const [values, setValues] = useState(initial);
+  const [selected, setSelected] = useState(null);
   const [running, setRunning] = useState(false);
-  const [grid, setGrid] = useState(() => createGrid(puzzle, solution));
-  const [selected, setSelected] = useState({ r: 0, c: 0 });
-  const [won, setWon] = useState(false);
-  const { elapsed, reset } = useTimer(running);
+  const [elapsed, setElapsed] = useTimer(running);
 
   useEffect(() => {
-    setGrid(createGrid(puzzle, solution));
-    setSelected({ r: 0, c: 0 });
-    setWon(false);
+    setValues(initial);
+    setSelected(null);
+    setElapsed(0);
     setRunning(false);
-    reset();
-  }, [puzzle, solution]);
+  }, [initial, setElapsed]);
+
+  const fixed = useMemo(() => initial.map((n) => n !== 0), [initial]);
 
   useEffect(() => {
-    const handler = (e) => {
-      if (won) return;
-      const key = e.key;
-      if (key >= '1' && key <= '9') {
-        inputValue(parseInt(key, 10));
-      } else if (key === 'Backspace' || key === 'Delete' || key === '0') {
-        inputValue(0);
-      } else if (key === 'ArrowUp') setSelected((s) => ({ r: (s.r + 8) % 9, c: s.c }));
-      else if (key === 'ArrowDown') setSelected((s) => ({ r: (s.r + 1) % 9, c: s.c }));
-      else if (key === 'ArrowLeft') setSelected((s) => ({ r: s.r, c: (s.c + 8) % 9 }));
-      else if (key === 'ArrowRight') setSelected((s) => ({ r: s.r, c: (s.c + 1) % 9 }));
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [selected, won]);
-
-  const inputValue = (val) => {
-    setGrid((g) => {
-      const copy = g.map((row) => row.map((cell) => ({ ...cell })));
-      const cell = copy[selected.r][selected.c];
-      if (cell.fixed) return g;
-      cell.value = val;
-      return copy;
-    });
-  };
-
-  useEffect(() => {
-    const allFilled = grid.every((row) => row.every((cell) => cell.value !== 0));
-    if (!allFilled || won) return;
-    const correct = grid.every((row) => row.every((cell) => cell.value === cell.solution));
-    if (correct) {
-      setWon(true);
+    if (values.every((v, i) => v === sol[i] && v !== 0)) {
       setRunning(false);
-      playBeep();
-      onComplete && onComplete(Math.floor(elapsed / 1000));
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(880, ctx.currentTime);
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.4, ctx.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+      o.connect(g).connect(ctx.destination);
+      o.start();
+      o.stop(ctx.currentTime + 0.3);
+      onComplete(Math.floor(elapsed / 1000));
     }
-  }, [grid, won, elapsed, onComplete]);
+  }, [values, sol, elapsed, onComplete]);
 
-  const highlightSets = useMemo(() => {
-    const r = selected.r;
-    const c = selected.c;
-    const boxR = Math.floor(r / 3) * 3;
-    const boxC = Math.floor(c / 3) * 3;
-    const inBox = new Set();
-    for (let i = 0; i < 3; i++) {
-      for (let j = 0; j < 3; j++) {
-        inBox.add(`${boxR + i}-${boxC + j}`);
+  const onKeyDown = (e) => {
+    if (selected == null) return;
+    const idx = selected;
+    const row = Math.floor(idx / 9);
+    const col = idx % 9;
+    if (e.key === 'ArrowUp') setSelected((i) => (i - 9 + 81) % 81);
+    if (e.key === 'ArrowDown') setSelected((i) => (i + 9) % 81);
+    if (e.key === 'ArrowLeft') setSelected((i) => (i + 80) % 81);
+    if (e.key === 'ArrowRight') setSelected((i) => (i + 1) % 81);
+    if (/^[1-9]$/.test(e.key)) {
+      if (!fixed[idx]) {
+        const nv = [...values];
+        nv[idx] = Number(e.key);
+        setValues(nv);
       }
     }
-    return { row: r, col: c, inBox };
-  }, [selected]);
+    if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') {
+      if (!fixed[idx]) {
+        const nv = [...values];
+        nv[idx] = 0;
+        setValues(nv);
+      }
+    }
+    if (e.key.toLowerCase() === ' ') {
+      setRunning((r) => !r);
+      e.preventDefault();
+    }
+  };
+
+  const autoFill = () => {
+    setValues(sol);
+  };
+
+  const reset = () => {
+    setValues(initial);
+    setElapsed(0);
+    setRunning(false);
+    setSelected(null);
+  };
 
   return (
-    <div className="relative">
-      {won && <ConfettiBurst />}
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-emerald-900 dark:text-emerald-100">
-          <TimerIcon size={16} />
-          <span className="font-mono text-lg">{formatTime(elapsed)}</span>
-        </div>
+    <div className="w-full" onKeyDown={onKeyDown} tabIndex={0}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-sm text-emerald-700 dark:text-emerald-200">Time: <span className="font-mono">{formatTime(elapsed)}</span></div>
         <div className="flex items-center gap-2">
-          {!running ? (
-            <button onClick={() => setRunning(true)} className="inline-flex items-center gap-1 px-3 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700"><Play size={16} /> Start</button>
-          ) : (
-            <button onClick={() => setRunning(false)} className="inline-flex items-center gap-1 px-3 py-2 rounded-md bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-800 dark:text-emerald-100 dark:hover:bg-emerald-700"><Pause size={16} /> Pause</button>
-          )}
-          <button onClick={() => { setGrid(createGrid(puzzle, solution)); setSelected({ r: 0, c: 0 }); setRunning(false); reset(); setWon(false); }}
-            className="inline-flex items-center gap-1 px-3 py-2 rounded-md bg-white/70 dark:bg-emerald-900/60 border border-emerald-100 dark:border-emerald-800 text-emerald-900 dark:text-emerald-100 hover:bg-emerald-50/80 dark:hover:bg-emerald-900">
-            <RotateCcw size={16} /> Reset
+          <button onClick={() => setRunning((r) => !r)} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100 hover:bg-emerald-50 dark:hover:bg-emerald-800">
+            {running ? <Pause size={16} /> : <Play size={16} />} {running ? 'Pause' : 'Start'}
           </button>
-          <button onClick={() => { setGrid(createGrid(solution, solution)); setRunning(false); setWon(true); onComplete && onComplete(Math.floor(elapsed / 1000)); playBeep(); }}
-            className="inline-flex items-center gap-1 px-3 py-2 rounded-md bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-900/60 dark:text-emerald-100 dark:hover:bg-emerald-900 dark:border-emerald-800">
-            <CheckCircle size={16} /> Auto-complete
+          <button onClick={reset} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100 hover:bg-emerald-50 dark:hover:bg-emerald-800">
+            <RotateCw size={16} /> Reset
+          </button>
+          <button onClick={autoFill} className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700">
+            <Zap size={16} /> Auto-complete
           </button>
         </div>
       </div>
-
-      <div className="grid grid-cols-9 gap-0 select-none rounded-lg overflow-hidden shadow ring-1 ring-emerald-200 dark:ring-emerald-800">
-        {grid.map((row, r) => (
-          <React.Fragment key={r}>
-            {row.map((cell, c) => {
-              const isSel = selected.r === r && selected.c === c;
-              const sameRow = selected.r === r;
-              const sameCol = selected.c === c;
-              const inBox = highlightSets.inBox.has(`${r}-${c}`);
-              const borderClasses = `${(c + 1) % 3 === 0 && c !== 8 ? 'border-r-2 border-emerald-400/50 dark:border-emerald-700' : ''} ${(r + 1) % 3 === 0 && r !== 8 ? 'border-b-2 border-emerald-400/50 dark:border-emerald-700' : ''}`;
-              return (
-                <div
-                  key={`${r}-${c}`}
-                  onClick={() => setSelected({ r, c })}
-                  className={`h-10 sm:h-12 flex items-center justify-center text-lg font-medium cursor-pointer transition-colors border border-emerald-100 dark:border-emerald-800 ${borderClasses} ${
-                    isSel ? 'bg-emerald-200/70 dark:bg-emerald-700/50' : sameRow || sameCol || inBox ? 'bg-emerald-50/60 dark:bg-emerald-900/40' : 'bg-white dark:bg-emerald-900'
-                  } ${cell.fixed ? 'text-emerald-900 dark:text-emerald-100' : 'text-emerald-600 dark:text-emerald-300'}`}
-                >
-                  {cell.value !== 0 ? cell.value : ''}
-                </div>
-              );
-            })}
-          </React.Fragment>
-        ))}
+      <div className="aspect-square max-w-xl mx-auto border-2 border-emerald-300 dark:border-emerald-700 rounded-md overflow-hidden select-none">
+        <div className="grid grid-cols-9">
+          {values.map((v, i) => {
+            const r = Math.floor(i / 9);
+            const c = i % 9;
+            const thickBottom = (r + 1) % 3 === 0 && r !== 8;
+            const thickRight = (c + 1) % 3 === 0 && c !== 8;
+            const isSel = selected === i;
+            const inRow = selected != null && Math.floor(selected / 9) === r;
+            const inCol = selected != null && selected % 9 === c;
+            const sameNum = selected != null && values[selected] !== 0 && values[selected] === v;
+            return (
+              <button
+                key={i}
+                onClick={() => setSelected(i)}
+                className={`relative h-10 sm:h-12 md:h-14 lg:h-16 flex items-center justify-center border border-emerald-200/70 dark:border-emerald-800/70 ${
+                  thickRight ? 'border-r-2 border-r-emerald-400 dark:border-r-emerald-700' : ''
+                } ${thickBottom ? 'border-b-2 border-b-emerald-400 dark:border-b-emerald-700' : ''} ${
+                  isSel ? 'bg-emerald-200/50 dark:bg-emerald-800/50' : inRow || inCol ? 'bg-emerald-100/40 dark:bg-emerald-900/40' : ''
+                }`}
+              >
+                <span className={`text-base sm:text-lg md:text-xl ${fixed[i] ? 'font-semibold text-emerald-900 dark:text-emerald-100' : 'text-emerald-700 dark:text-emerald-200'}`}>
+                  {v !== 0 ? v : ''}
+                </span>
+                {sameNum && !fixed[i] && v !== 0 && (
+                  <span className="absolute inset-0 ring-2 ring-emerald-500 pointer-events-none rounded-sm" />
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
-
-      <div className="mt-3 grid grid-cols-10 gap-2">
-        {[1,2,3,4,5,6,7,8,9].map((n) => (
-          <button key={n} onClick={() => inputValue(n)} className="px-2 py-2 rounded-md bg-white/70 dark:bg-emerald-900/60 border border-emerald-100 dark:border-emerald-800 text-emerald-900 dark:text-emerald-100 hover:bg-emerald-50/80 dark:hover:bg-emerald-900">{n}</button>
-        ))}
-        <button onClick={() => inputValue(0)} className="px-2 py-2 rounded-md bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-800 dark:text-emerald-100 dark:hover:bg-emerald-700">Clear</button>
-      </div>
+      <p className="mt-2 text-center text-xs text-emerald-700/70 dark:text-emerald-300/70">Tip: Use arrow keys, numbers, Backspace. Space to pause/resume.</p>
     </div>
   );
 }
