@@ -1,18 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import Spline from '@splinetool/react-spline';
 import ThemeToggleHeader from './components/ThemeToggleHeader';
 import LevelSelector from './components/LevelSelector';
 import SudokuBoard from './components/SudokuBoard';
 import SidebarStats from './components/SidebarStats';
 
-function classNames(...arr) {
-  return arr.filter(Boolean).join(' ');
-}
+const STORAGE_KEYS = {
+  players: 'sudoku_players',
+  active: 'sudoku_active',
+};
 
-const STORAGE_PLAYERS = 'sudoku_players';
-const STORAGE_ACTIVE = 'sudoku_active';
-
-// A tiny curated set of valid Sudoku puzzles and solutions per difficulty.
-// Strings are 81 chars. 0 denotes empty.
 const PUZZLES = {
   easy: [
     {
@@ -20,25 +17,69 @@ const PUZZLES = {
       s: '534678912672195348198342567859761423426853791713924856961537284287419635345286179',
     },
     {
-      p: '000260701680070090190004500820100040004602900050003028009300074040050036703018000',
-      s: '435269781682571493197834562826195347374682915951743628519326874248957136763418259',
+      p: '003020600900305001001806400008102900700000008006708200002609500800203009005010300',
+      s: '483921657967345821251876493548132976729564138136798245372689514814253769695417382',
+    },
+    {
+      p: '200080300060070084030500209000105408000000000402706000301007040720040060004010003',
+      s: '245986371169273584837541269976125438318694752452736918591367842723849165684912753',
+    },
+    {
+      p: '000000907000420180000705026100904000050000040000507009920108000034059000507000000',
+      s: '512368947673429185498715326126934578759281643384567219965173854234859761817642593',
+    },
+    {
+      p: '000900002050123400030000000004000000000567000000000800000000030001735060500009000',
+      s: '146978352857123496239456718784391625913567284625842871472618539391735862568239147',
     },
   ],
   medium: [
     {
+      p: '003020600900305001001806400008102900700000008006708200002609500800203009005010300',
+      s: '483921657967345821251876493548132976729564138136798245372689514814253769695417382',
+    },
+    {
+      p: '530070000600195000098000060800060003400803001700020006060000280000419005000080079',
+      s: '534678912672195348198342567859761423426853791713924856961537284287419635345286179',
+    },
+    {
       p: '000000907000420180000705026100904000050000040000507009920108000034059000507000000',
-      s: '512683947793426185486715326175934862259861743348572619926148573834259761567397418',
+      s: '512368947673429185498715326126934578759281643384567219965173854234859761817642593',
+    },
+    {
+      p: '200080300060070084030500209000105408000000000402706000301007040720040060004010003',
+      s: '245986371169273584837541269976125438318694752452736918591367842723849165684912753',
+    },
+    {
+      p: '000900002050123400030000000004000000000567000000000800000000030001735060500009000',
+      s: '146978352857123496239456718784391625913567284625842871472618539391735862568239147',
     },
   ],
   hard: [
     {
-      p: '005300000800000020070010500400005300010070006003200080060500009004000030000009700',
-      s: '145327698839654127672918543427865391918473256563291784286543919794186235351729476',
+      p: '000000907000420180000705026100904000050000040000507009920108000034059000507000000',
+      s: '512368947673429185498715326126934578759281643384567219965173854234859761817642593',
+    },
+    {
+      p: '200080300060070084030500209000105408000000000402706000301007040720040060004010003',
+      s: '245986371169273584837541269976125438318694752452736918591367842723849165684912753',
+    },
+    {
+      p: '003020600900305001001806400008102900700000008006708200002609500800203009005010300',
+      s: '483921657967345821251876493548132976729564138136798245372689514814253769695417382',
+    },
+    {
+      p: '000900002050123400030000000004000000000567000000000800000000030001735060500009000',
+      s: '146978352857123496239456718784391625913567284625842871472618539391735862568239147',
+    },
+    {
+      p: '530070000600195000098000060800060003400803001700020006060000280000419005000080079',
+      s: '534678912672195348198342567859761423426853791713924856961537284287419635345286179',
     },
   ],
 };
 
-function createPlayer(name) {
+function newPlayer(name) {
   return {
     id: crypto.randomUUID(),
     name,
@@ -52,121 +93,115 @@ function createPlayer(name) {
   };
 }
 
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default function App() {
-  const [theme, setTheme] = useState('vibrant'); // 'vibrant' (emerald dark) | 'subtle' (mint light)
-  const [players, setPlayers] = useState([]);
-  const [activePlayer, setActivePlayer] = useState('');
-  const [difficulty, setDifficulty] = useState('easy');
-  const [level, setLevel] = useState(0);
-
-  const isVibrant = theme === 'vibrant';
-
-  // Load from localStorage
-  useEffect(() => {
+  const [theme, setTheme] = useState(() => (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+  const [players, setPlayers] = useState(() => {
     try {
-      const p = JSON.parse(localStorage.getItem(STORAGE_PLAYERS) || '[]');
-      if (Array.isArray(p)) setPlayers(p);
-      const a = JSON.parse(localStorage.getItem(STORAGE_ACTIVE) || '{}');
-      if (a && a.activePlayer) setActivePlayer(a.activePlayer);
-      if (a && a.difficulty) setDifficulty(a.difficulty);
-      if (typeof a.level === 'number') setLevel(a.level);
-    } catch {}
-  }, []);
+      const raw = localStorage.getItem(STORAGE_KEYS.players);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [activePlayerId, setActivePlayerId] = useState(() => localStorage.getItem(STORAGE_KEYS.active) || '');
+  const [difficulty, setDifficulty] = useState('easy');
+  const [levelIndex, setLevelIndex] = useState(0);
 
-  // Persist to localStorage
   useEffect(() => {
-    localStorage.setItem(STORAGE_PLAYERS, JSON.stringify(players));
+    localStorage.setItem(STORAGE_KEYS.players, JSON.stringify(players));
   }, [players]);
   useEffect(() => {
-    localStorage.setItem(
-      STORAGE_ACTIVE,
-      JSON.stringify({ activePlayer, difficulty, level })
-    );
-  }, [activePlayer, difficulty, level]);
+    localStorage.setItem(STORAGE_KEYS.active, activePlayerId || '');
+  }, [activePlayerId]);
 
-  const maxLevel = PUZZLES[difficulty].length;
-  const { p: puzzleStr, s: solutionStr } = PUZZLES[difficulty][Math.min(level, maxLevel - 1)];
+  const activePlayer = useMemo(() => players.find((p) => p.id === activePlayerId) || null, [players, activePlayerId]);
+  const levels = PUZZLES[difficulty];
+  const level = levels[levelIndex % levels.length];
 
-  function handleAddPlayer(name) {
-    const np = createPlayer(name);
-    const next = [...players, np];
-    setPlayers(next);
-    if (!activePlayer) setActivePlayer(np.id);
-  }
+  const addPlayer = (name) => {
+    const p = newPlayer(name);
+    setPlayers((prev) => [p, ...prev]);
+    setActivePlayerId(p.id);
+  };
+  const selectPlayer = (id) => setActivePlayerId(id);
 
-  function handleSelectPlayer(id) {
-    setActivePlayer(id);
-  }
-
-  function handleComplete(timeSec) {
+  const onComplete = (elapsedSecs) => {
     if (!activePlayer) return;
-    setPlayers((prev) => {
-      return prev.map((p) => {
-        if (p.id !== activePlayer) return p;
-        const today = new Date().toISOString().slice(0, 10);
-        const days = new Set(p.daysPlayed || []);
-        days.add(today);
-        const area = p.stats[difficulty];
-        const best = typeof area.bestTime === 'number' ? Math.min(area.bestTime, timeSec) : timeSec;
-        return {
-          ...p,
-          stats: {
-            ...p.stats,
-            [difficulty]: { games: (area.games || 0) + 1, bestTime: best },
-          },
-          totalGames: (p.totalGames || 0) + 1,
-          daysPlayed: Array.from(days),
-        };
-      });
-    });
-
+    setPlayers((prev) => prev.map((p) => {
+      if (p.id !== activePlayer.id) return p;
+      const d = { ...p };
+      d.totalGames = (d.totalGames || 0) + 1;
+      const dk = todayKey();
+      if (!d.daysPlayed) d.daysPlayed = [];
+      if (!d.daysPlayed.includes(dk)) d.daysPlayed.push(dk);
+      const stat = d.stats[difficulty];
+      stat.games += 1;
+      if (stat.bestTime == null || elapsedSecs < stat.bestTime) stat.bestTime = elapsedSecs;
+      return d;
+    }));
     // advance level
-    const nextLevel = (level + 1) % maxLevel;
-    setLevel(nextLevel);
-  }
+    setLevelIndex((i) => (i + 1) % levels.length);
+  };
 
-  const bgClass = isVibrant
-    ? 'bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-950 text-emerald-50'
-    : 'bg-emerald-50 text-emerald-900';
+  const onPrevLevel = () => setLevelIndex((i) => (i - 1 + levels.length) % levels.length);
+  const onNextLevel = () => setLevelIndex((i) => (i + 1) % levels.length);
+
+  useEffect(() => {
+    setLevelIndex(0);
+  }, [difficulty]);
 
   return (
-    <div className={classNames('min-h-screen', bgClass)}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col gap-6">
-        <ThemeToggleHeader
-          theme={theme}
-          onToggleTheme={() => setTheme((t) => (t === 'vibrant' ? 'subtle' : 'vibrant'))}
-          players={players}
-          activePlayer={activePlayer}
-          onAddPlayer={handleAddPlayer}
-          onSelectPlayer={handleSelectPlayer}
-        />
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 flex flex-col gap-6">
-            <LevelSelector
-              theme={theme}
-              difficulty={difficulty}
-              level={level}
-              maxLevel={maxLevel}
-              onChangeDifficulty={(d) => {
-                setDifficulty(d);
-                setLevel(0);
-              }}
-              onChangeLevel={setLevel}
-            />
-            <SudokuBoard
-              theme={theme}
-              puzzleStr={puzzleStr}
-              solutionStr={solutionStr}
-              onComplete={handleComplete}
-            />
+    <div className={theme === 'dark' ? 'dark' : ''}>
+      <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 transition-colors">
+        {/* Hero with Spline cover */}
+        <div className="relative w-full h-[300px] sm:h-[380px]">
+          <Spline scene="https://prod.spline.design/zhZFnwyOYLgqlLWk/scene.splinecode" style={{ width: '100%', height: '100%' }} />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-emerald-50/30 via-emerald-50/0 to-emerald-50/70 dark:from-emerald-950/50 dark:via-emerald-950/30 dark:to-emerald-950/70" />
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="text-center">
+              <h2 className="text-3xl sm:text-4xl font-bold text-emerald-900 dark:text-emerald-50">Sudoku Arena</h2>
+              <p className="mt-2 text-emerald-800/80 dark:text-emerald-200/70">A minimalist grid battleground. Race the clock. Climb the board.</p>
+            </div>
           </div>
-          <SidebarStats theme={theme} players={players} activePlayer={activePlayer} />
         </div>
 
-        <footer className={classNames('text-center text-xs', isVibrant ? 'text-emerald-300/70' : 'text-emerald-700/70')}>
-          Emerald dark / Mint light • Sudoku Arena
-        </footer>
+        <ThemeToggleHeader
+          theme={theme}
+          onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+          players={players}
+          activePlayerId={activePlayerId}
+          onAddPlayer={addPlayer}
+          onSelectPlayer={selectPlayer}
+        />
+
+        <main className="mx-auto max-w-7xl px-4 pb-16 -mt-16">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-4">
+              <LevelSelector
+                difficulty={difficulty}
+                onDifficultyChange={setDifficulty}
+                levelIndex={levelIndex}
+                totalLevels={levels.length}
+                onPrev={onPrevLevel}
+                onNext={onNextLevel}
+              />
+              <div className="bg-white/70 dark:bg-emerald-900/60 border border-emerald-100 dark:border-emerald-800 rounded-xl p-4 backdrop-blur">
+                <SudokuBoard
+                  puzzle={level.p}
+                  solution={level.s}
+                  onComplete={onComplete}
+                />
+              </div>
+            </div>
+            <div>
+              <SidebarStats players={players} difficulty={difficulty} />
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   );

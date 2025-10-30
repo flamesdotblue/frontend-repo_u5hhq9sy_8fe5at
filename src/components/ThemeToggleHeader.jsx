@@ -1,111 +1,64 @@
 import React, { useState } from 'react';
-import { Sun, Moon, Users, PlusCircle } from 'lucide-react';
+import { Sun, Moon, Users, UserPlus } from 'lucide-react';
 
-function classNames(...arr) {
-  return arr.filter(Boolean).join(' ');
-}
-
-export default function ThemeToggleHeader({ theme, onToggleTheme, players, activePlayer, onAddPlayer, onSelectPlayer }) {
+export default function ThemeToggleHeader({ theme, onToggleTheme, players, activePlayerId, onAddPlayer, onSelectPlayer }) {
   const [name, setName] = useState('');
 
-  const isVibrant = theme === 'vibrant';
+  const handleAdd = () => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    onAddPlayer(trimmed);
+    setName('');
+  };
 
   return (
-    <header
-      className={classNames(
-        'w-full rounded-xl border px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center gap-4 justify-between shadow',
-        isVibrant
-          ? 'bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-950 border-emerald-800 text-emerald-50'
-          : 'bg-emerald-50 border-emerald-200 text-emerald-900'
-      )}
-    >
-      <div className="flex items-center gap-3">
-        <div
-          className={classNames(
-            'h-10 w-10 rounded-lg flex items-center justify-center font-bold',
-            isVibrant ? 'bg-emerald-800 text-emerald-50' : 'bg-emerald-100 text-emerald-800'
-          )}
-        >
-          SA
-        </div>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Sudoku Arena</h1>
-          <p className={classNames('text-xs', isVibrant ? 'text-emerald-300/80' : 'text-emerald-700/70')}>Compete, improve, and keep your streak alive</p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onToggleTheme}
-          className={classNames(
-            'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition shadow-sm',
-            isVibrant
-              ? 'bg-emerald-800/70 hover:bg-emerald-700 border border-emerald-700 text-emerald-50'
-              : 'bg-white hover:bg-emerald-100 border border-emerald-200 text-emerald-900'
-          )}
-          aria-label="Toggle theme"
-        >
-          {isVibrant ? <Sun size={16} /> : <Moon size={16} />}
-          <span>{isVibrant ? 'Mint' : 'Emerald'}</span>
-        </button>
-
-        <div className="flex items-center gap-2">
-          <div className={classNames('hidden sm:flex items-center text-sm', isVibrant ? 'text-emerald-200' : 'text-emerald-700')}>
-            <Users size={16} className="mr-1" /> Players
+    <header className="w-full">
+      <div className="mx-auto max-w-7xl px-4 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-emerald-600 text-white shadow">
+            <Users size={20} />
           </div>
-          <select
-            className={classNames(
-              'rounded-lg px-3 py-2 text-sm outline-none focus:ring-2',
-              isVibrant
-                ? 'bg-emerald-900 border border-emerald-700 text-emerald-50 focus:ring-emerald-600'
-                : 'bg-white border border-emerald-300 text-emerald-900 focus:ring-emerald-400'
-            )}
-            value={activePlayer ?? ''}
-            onChange={(e) => onSelectPlayer(e.target.value)}
-          >
-            <option value="" disabled>
-              Select player
-            </option>
-            {players.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const n = name.trim();
-              if (!n) return;
-              onAddPlayer(n);
-              setName('');
-            }}
-            className="flex items-center gap-2"
-          >
+          <div>
+            <h1 className="text-xl font-semibold text-emerald-900 dark:text-emerald-100">Sudoku Arena</h1>
+            <p className="text-sm text-emerald-700/70 dark:text-emerald-200/60">Compete, level up, and keep your streak alive</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-white/70 dark:bg-emerald-900/60 backdrop-blur rounded-lg px-2 py-1 shadow border border-emerald-100 dark:border-emerald-800">
             <input
+              className="bg-transparent focus:outline-none px-2 py-1 text-sm text-emerald-900 dark:text-emerald-100 placeholder-emerald-400"
+              placeholder="Add player"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Add name"
-              className={classNames(
-                'rounded-lg px-3 py-2 text-sm outline-none focus:ring-2',
-                isVibrant
-                  ? 'bg-emerald-900 border border-emerald-700 text-emerald-50 placeholder:text-emerald-400 focus:ring-emerald-600'
-                  : 'bg-white border border-emerald-300 text-emerald-900 placeholder:text-emerald-500 focus:ring-emerald-400'
-              )}
+              onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
             />
             <button
-              type="submit"
-              className={classNames(
-                'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm transition',
-                isVibrant
-                  ? 'bg-emerald-700 hover:bg-emerald-600 text-emerald-50'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-              )}
-              aria-label="Add player"
+              onClick={handleAdd}
+              className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition"
             >
-              <PlusCircle size={16} />
+              <UserPlus size={14} /> Add
             </button>
-          </form>
+          </div>
+
+          <select
+            value={activePlayerId || ''}
+            onChange={(e) => onSelectPlayer(e.target.value)}
+            className="text-sm bg-white/70 dark:bg-emerald-900/60 backdrop-blur px-3 py-2 rounded-md border border-emerald-100 dark:border-emerald-800 text-emerald-900 dark:text-emerald-100"
+          >
+            <option value="">Select player</option>
+            {players.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+
+          <button
+            onClick={onToggleTheme}
+            className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition shadow"
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
         </div>
       </div>
     </header>
